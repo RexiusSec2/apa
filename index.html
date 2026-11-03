@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>jokowi.web</title>
+    <title>Ctrl.Aja</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
@@ -170,6 +170,24 @@
         .btn-monochrome-primary:active {
             transform: scale(0.97);
         }
+        /* Tombol Claws: putih = tertutup, hitam = terbuka */
+        .claws-btn {
+            width: 100%; max-width: 280px;
+            padding: 14px 20px;
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+            cursor: pointer; user-select: none;
+            background: #ffffff; color: #09090b;
+            border: 1px solid #ffffff;
+            box-shadow: 0 8px 24px -6px rgba(255, 255, 255, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+        }
+        .claws-btn:active { transform: scale(0.95); }
+        .claws-btn.open {
+            background: #000000; color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 <body class="flex flex-col h-screen antialiased selection:bg-white selection:text-black">
@@ -232,6 +250,15 @@
                             <button class="dpad-btn" data-dir="right" id="btn-right"><i class="fas fa-chevron-right"></i></button>
                         </div>
                         <button class="dpad-btn" data-dir="down" id="btn-down"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+
+                    <!-- Tombol Claws -->
+                    <div class="w-full max-w-md mt-4 glass-card rounded-2xl p-4 flex flex-col items-center gap-2">
+                        <button id="btn-claws" class="claws-btn" title="Claws">
+                            <i class="fas fa-hand-back-fist" id="claws-icon"></i>
+                            <span>Claws</span>
+                        </button>
+                        <p id="claws-status" class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Claws: Tertutup</p>
                     </div>
 
                     <div class="w-full max-w-md mt-6 glass-card rounded-2xl p-4">
@@ -639,6 +666,39 @@
             btn.addEventListener('touchstart', e => { e.preventDefault(); pressDir(dir); }, { passive: false });
             btn.addEventListener('touchend', e => { e.preventDefault(); releaseDir(dir); });
             btn.addEventListener('touchcancel', e => { e.preventDefault(); releaseDir(dir); });
+        });
+
+        // --- CLAWS ---
+        // Putih = tertutup, hitam = terbuka
+        const claws = { sent: false, open: false };
+
+        function renderClaws() {
+            const b = $('btn-claws');
+            if (!b) return;
+            b.classList.toggle('open', claws.open);
+            $('claws-status').innerText = claws.open ? 'Claws: Terbuka' : 'Claws: Tertutup';
+        }
+
+        $('btn-claws').addEventListener('click', () => {
+            if (!state.bleConnected) {
+                showToast("Connect Micro:bit dulu!");
+                return;
+            }
+            if (!claws.sent) {
+                // Tekan pertama: kirim "claws close", tombol tetap putih
+                claws.sent = true;
+                claws.open = false;
+                sendData("claws close");
+            } else if (!claws.open) {
+                // Sudah close terkirim lalu ditekan lagi: jadi hitam (terbuka)
+                claws.open = true;
+                sendData("claws open");
+            } else {
+                // Tekan lagi: kembali putih (tertutup)
+                claws.open = false;
+                sendData("claws close");
+            }
+            renderClaws();
         });
 
         $('btn-conn-bt').onclick = async () => {
